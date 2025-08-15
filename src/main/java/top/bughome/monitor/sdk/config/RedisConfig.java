@@ -1,46 +1,48 @@
 package top.bughome.monitor.sdk.config;
 
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.codec.JsonJacksonCodec;
+import org.redisson.config.Config;
+import top.bughome.monitor.sdk.properties.RedisProperties;
+import top.bughome.monitor.sdk.push.IPush;
+import top.bughome.monitor.sdk.push.impl.RedisPush;
+
 /**
- * Redis配置文件
- * 该类用于定义Redis的连接配置，包括主机地址、端口和密码
- * Created by MaxWell on 2025/8/14 20:12
+ * Redis配置类
+ * Created by MaxWell on 2025/8/15 20:21
  */
 public class RedisConfig {
 
-    private String host = "localhost";
-    private int port = 6379;
-    private String password;
-    private String topic = "business-behavior-monitor-sdk-topic";
+    public static IPush createRedisPush(RedisProperties redisProperties) {
+        if (redisProperties == null) {
+            throw new IllegalStateException("RedisConfig配置有误");
+        }
+        if (redisProperties.getHost() == null || redisProperties.getHost().trim().isEmpty()) {
+            throw new IllegalStateException("RedisConfig 中的 host 配置不能为空");
+        }
+        if (redisProperties.getPort() <= 0) {
+            throw new IllegalStateException("RedisConfig 中的 port 配置必须大于 0");
+        }
 
-    public String getHost() {
-        return host;
+        RedissonClient redissonClient = createRedissonClient(redisProperties);
+        return new RedisPush(redisProperties.getTopic(), redissonClient);
     }
 
-    public void setHost(String host) {
-        this.host = host;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
+    private static RedissonClient createRedissonClient(RedisProperties redisProperties) {
+        Config config = new Config();
+        config.setCodec(JsonJacksonCodec.INSTANCE);
+        config.useSingleServer()
+                .setAddress("redis://" + redisProperties.getHost() + ":" + redisProperties.getPort())
+                .setPassword(redisProperties.getPassword())
+                .setConnectionPoolSize(64)
+                .setConnectionMinimumIdleSize(10)
+                .setIdleConnectionTimeout(1000)
+                .setConnectTimeout(1000)
+                .setRetryAttempts(3)
+                .setRetryInterval(1000)
+                .setPingConnectionInterval(0)
+                .setKeepAlive(true);
+        return Redisson.create(config);
     }
 }

@@ -2,9 +2,10 @@ package top.bughome.monitor.sdk.appender;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.UnsynchronizedAppenderBase;
-import top.bughome.monitor.sdk.config.ChannelConfig;
-import top.bughome.monitor.sdk.config.KafkaConfig;
-import top.bughome.monitor.sdk.config.RedisConfig;
+import top.bughome.monitor.sdk.properties.ChannelProperties;
+import top.bughome.monitor.sdk.properties.KafkaProperties;
+import top.bughome.monitor.sdk.properties.RabbitMqProperties;
+import top.bughome.monitor.sdk.properties.RedisProperties;
 import top.bughome.monitor.sdk.model.LogMessage;
 import top.bughome.monitor.sdk.push.IPush;
 import top.bughome.monitor.sdk.push.PushConfig;
@@ -32,11 +33,15 @@ public class BehaviorMonitorAppender<E> extends UnsynchronizedAppenderBase<E> {
     /**
      * kafka配置
      */
-    private KafkaConfig kafkaConfig;
+    private KafkaProperties kafkaProperties;
     /**
      * redis配置
      */
-    private RedisConfig redisConfig;
+    private RedisProperties redisProperties;
+    /**
+     * RabbitMQ配置
+     */
+    private RabbitMqProperties rabbitMqProperties;
 
     private IPush push;
 
@@ -53,9 +58,9 @@ public class BehaviorMonitorAppender<E> extends UnsynchronizedAppenderBase<E> {
             validateChannelConfig();
 
             // 创建渠道配置
-            ChannelConfig channelConfig = new ChannelConfig(kafkaConfig, redisConfig);
+            ChannelProperties channelProperties = new ChannelProperties(kafkaProperties, redisProperties, rabbitMqProperties);
             // 通过工厂获取推送实例
-            this.push = PushConfig.getPush(channel, channelConfig);
+            this.push = PushConfig.getPush(channel, channelProperties);
 
             addInfo("业务行为监控组件启动成功，推送渠道：" + channel);
             super.start();
@@ -95,13 +100,19 @@ public class BehaviorMonitorAppender<E> extends UnsynchronizedAppenderBase<E> {
     private void validateChannelConfig() {
         switch (channel.toLowerCase()) {
             case "kafka":
-                if (kafkaConfig == null) {
+                if (kafkaProperties == null) {
                     throw new IllegalStateException("kafkaConfig配置有误");
                 }
                 break;
             case "redis":
-                if (redisConfig == null) {
+                if (redisProperties == null) {
                     throw new IllegalStateException("redisConfig配置有误");
+                }
+                break;
+            case "rabbitmq":
+            case "rabbit":
+                if (rabbitMqProperties == null) {
+                    throw new IllegalStateException("rabbitMqConfig配置有误");
                 }
                 break;
             default:
@@ -133,19 +144,27 @@ public class BehaviorMonitorAppender<E> extends UnsynchronizedAppenderBase<E> {
         this.channel = channel;
     }
 
-    public KafkaConfig getKafkaConfig() {
-        return kafkaConfig;
+    public KafkaProperties getKafkaConfig() {
+        return kafkaProperties;
     }
 
-    public void setKafkaConfig(KafkaConfig kafkaConfig) {
-        this.kafkaConfig = kafkaConfig;
+    public void setKafkaConfig(KafkaProperties kafkaProperties) {
+        this.kafkaProperties = kafkaProperties;
     }
 
-    public RedisConfig getRedisConfig() {
-        return redisConfig;
+    public RedisProperties getRedisConfig() {
+        return redisProperties;
     }
 
-    public void setRedisConfig(RedisConfig redisConfig) {
-        this.redisConfig = redisConfig;
+    public void setRedisConfig(RedisProperties redisProperties) {
+        this.redisProperties = redisProperties;
+    }
+
+    public RabbitMqProperties getRabbitMqConfig() {
+        return rabbitMqProperties;
+    }
+
+    public void setRabbitMqConfig(RabbitMqProperties rabbitMqProperties) {
+        this.rabbitMqProperties = rabbitMqProperties;
     }
 }

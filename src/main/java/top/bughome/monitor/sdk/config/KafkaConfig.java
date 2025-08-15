@@ -1,64 +1,43 @@
 package top.bughome.monitor.sdk.config;
 
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
+import top.bughome.monitor.sdk.properties.KafkaProperties;
+import top.bughome.monitor.sdk.push.IPush;
+import top.bughome.monitor.sdk.push.impl.KafkaPush;
+
+import java.util.HashMap;
+import java.util.Map;
+
 /**
- * kafka配置文件
- * 该类用于定义Kafka的连接配置，包括主机地址、端口等
- * Created by MaxWell on 2025/8/14 20:50
+ * Kafka配置类
+ * Created by MaxWell on 2025/8/15 20:23
  */
 public class KafkaConfig {
+    public static IPush createKafkaPush(KafkaProperties kafkaProperties) {
+        if (kafkaProperties == null) {
+            throw new IllegalStateException("KafkaConfig配置有误");
+        }
+        if (kafkaProperties.getServers() == null || kafkaProperties.getServers().trim().isEmpty()) {
+            throw new IllegalStateException("KafkaConfig 中的 servers 配置不能为空");
+        }
 
-    private String servers = "localhost:9092";
-    private String topic = "business-behavior-monitor-sdk-topic";
-    private int retries = 0;
-    private int batchSize = 4096;
-    private int linger = 1;
-    private int bufferMemory = 40960;
-
-    public String getServers() {
-        return servers;
+        KafkaTemplate<String, String> kafkaTemplate = new KafkaTemplate<>(createKafkaProducerFactory(kafkaProperties));
+        return new KafkaPush(kafkaProperties.getTopic(), kafkaTemplate);
     }
 
-    public void setServers(String servers) {
-        this.servers = servers;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    public int getRetries() {
-        return retries;
-    }
-
-    public void setRetries(int retries) {
-        this.retries = retries;
-    }
-
-    public int getBatchSize() {
-        return batchSize;
-    }
-
-    public void setBatchSize(int batchSize) {
-        this.batchSize = batchSize;
-    }
-
-    public int getLinger() {
-        return linger;
-    }
-
-    public void setLinger(int linger) {
-        this.linger = linger;
-    }
-
-    public int getBufferMemory() {
-        return bufferMemory;
-    }
-
-    public void setBufferMemory(int bufferMemory) {
-        this.bufferMemory = bufferMemory;
+    private static ProducerFactory<String, String> createKafkaProducerFactory(KafkaProperties kafkaProperties) {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getServers());
+        props.put(ProducerConfig.RETRIES_CONFIG, kafkaProperties.getRetries());
+        props.put(ProducerConfig.BATCH_SIZE_CONFIG, kafkaProperties.getBatchSize());
+        props.put(ProducerConfig.LINGER_MS_CONFIG, kafkaProperties.getLinger());
+        props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, kafkaProperties.getBufferMemory());
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        return new DefaultKafkaProducerFactory<>(props);
     }
 }

@@ -10,7 +10,7 @@
     </parent>
     <groupId>top.bughome</groupId>
     <artifactId>business-behavior-monitor-sdk</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
     <name>business-behavior-monitor-sdk</name>
     <description>Business Behavior Monitor SDK for Spring Boot</description>
     <url>https://github.com/xwbughome/business-behavior-monitor-sdk</url>
@@ -98,6 +98,10 @@
             <groupId>org.redisson</groupId>
             <artifactId>redisson-spring-boot-starter</artifactId>
             <version>3.26.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
 
     </dependencies>
