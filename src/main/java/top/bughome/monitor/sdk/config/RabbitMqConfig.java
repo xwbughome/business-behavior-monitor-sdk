@@ -1,19 +1,17 @@
 package top.bughome.monitor.sdk.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
-import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitAdmin;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import com.rabbitmq.client.BuiltinExchangeType;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 import top.bughome.monitor.sdk.properties.RabbitMqProperties;
 import top.bughome.monitor.sdk.push.IPush;
 import top.bughome.monitor.sdk.push.impl.RabbitPush;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Created by MaxWell on 2025/8/15 20:23
@@ -40,59 +38,51 @@ public class RabbitMqConfig {
             throw new IllegalStateException("RabbitMqConfig 中的 password 配置不能为空");
         }
 
-        ConnectionFactory connectionFactory = createConnectionFactory(rabbitMqProperties);
-        RabbitAdmin rabbitAdmin = createRabbitAdmin(connectionFactory);
+        try {
+            ConnectionFactory connectionFactory = createConnectionFactory(rabbitMqProperties);
+            Connection connection = connectionFactory.newConnection(); // 不使用 try-with-resources
+            Channel channel = connection.createChannel();
 
-        // 创建交换机
-        TopicExchange exchange = createTopicExchange(rabbitAdmin);
-        // 创建队列
-        Queue queue = createQueue(rabbitAdmin, rabbitMqProperties.getTopic());
-        // 创建绑定关系
-        createBinding(rabbitAdmin, queue, exchange, rabbitMqProperties.getTopic());
+            // 创建交换机
+            createTopicExchange(channel);
+            // 创建队列
+            createQueue(channel, rabbitMqProperties.getTopic());
+            // 创建绑定关系
+            createBinding(channel, rabbitMqProperties.getTopic());
 
-        RabbitTemplate rabbitTemplate = createRabbitTemplate(connectionFactory);
-        return new RabbitPush(rabbitMqProperties.getTopic(), rabbitTemplate);
+            return new RabbitPush(rabbitMqProperties.getTopic(), channel, EXCHANGE_NAME, connection);
+        } catch (IOException | TimeoutException e) {
+            throw new RuntimeException("创建RabbitMQ连接失败", e);
+        }
     }
 
     private static ConnectionFactory createConnectionFactory(RabbitMqProperties rabbitMqProperties) {
-        CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
+        ConnectionFactory connectionFactory = new ConnectionFactory();
         connectionFactory.setHost(rabbitMqProperties.getHost());
         connectionFactory.setPort(rabbitMqProperties.getPort());
         connectionFactory.setUsername(rabbitMqProperties.getUsername());
         connectionFactory.setPassword(rabbitMqProperties.getPassword());
-        connectionFactory.setVirtualHost(rabbitMqProperties.getVirtualHost());
+        String virtualHost = rabbitMqProperties.getVirtualHost();
+        if (virtualHost != null && !virtualHost.trim().isEmpty()) {
+            connectionFactory.setVirtualHost(virtualHost);
+        }
+
         return connectionFactory;
     }
 
-    private static RabbitTemplate createRabbitTemplate(ConnectionFactory connectionFactory) {
-        return new RabbitTemplate(connectionFactory);
-    }
-
-    private static RabbitAdmin createRabbitAdmin(ConnectionFactory connectionFactory) {
-        RabbitAdmin rabbitAdmin = new RabbitAdmin(connectionFactory);
-        rabbitAdmin.setAutoStartup(true);
-        return rabbitAdmin;
-    }
-
-    private static Queue createQueue(RabbitAdmin rabbitAdmin, String queueName) {
+    private static void createQueue(Channel channel, String queueName) throws IOException {
         Map<String, Object> argsMap = new HashMap<>();
-        Queue queue = new Queue(queueName, true, false, false, argsMap);
-        // 声明队列
-        rabbitAdmin.declareQueue(queue);
-        return queue;
+        // 声明队列：队列名, 持久化, 独占, 自动删除, 参数
+        channel.queueDeclare(queueName, true, false, false, argsMap);
     }
 
-    private static TopicExchange createTopicExchange(RabbitAdmin rabbitAdmin) {
-        TopicExchange exchange = new TopicExchange(EXCHANGE_NAME, true, false);
-        // 声明交换机
-        rabbitAdmin.declareExchange(exchange);
-        return exchange;
+    private static void createTopicExchange(Channel channel) throws IOException {
+        // 声明交换机：交换机名, 类型, 持久化, 自动删除, 内部使用, 参数
+        channel.exchangeDeclare(EXCHANGE_NAME, BuiltinExchangeType.TOPIC, true, false, false, null);
     }
 
-    private static Binding createBinding(RabbitAdmin rabbitAdmin, Queue queue, TopicExchange exchange, String routingKey) {
-        Binding binding = BindingBuilder.bind(queue).to(exchange).with(routingKey);
-        // 声明绑定关系
-        rabbitAdmin.declareBinding(binding);
-        return binding;
+    private static void createBinding(Channel channel, String queueName) throws IOException {
+        // 绑定队列到交换机：队列名, 交换机名, 路由键, 参数
+        channel.queueBind(queueName, EXCHANGE_NAME, queueName, null);
     }
 }

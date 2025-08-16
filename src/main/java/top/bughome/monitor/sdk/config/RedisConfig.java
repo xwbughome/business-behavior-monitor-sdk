@@ -1,9 +1,7 @@
 package top.bughome.monitor.sdk.config;
 
-import org.redisson.Redisson;
-import org.redisson.api.RedissonClient;
-import org.redisson.codec.JsonJacksonCodec;
-import org.redisson.config.Config;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
 import top.bughome.monitor.sdk.properties.RedisProperties;
 import top.bughome.monitor.sdk.push.IPush;
 import top.bughome.monitor.sdk.push.impl.RedisPush;
@@ -25,24 +23,25 @@ public class RedisConfig {
             throw new IllegalStateException("RedisConfig 中的 port 配置必须大于 0");
         }
 
-        RedissonClient redissonClient = createRedissonClient(redisProperties);
-        return new RedisPush(redisProperties.getTopic(), redissonClient);
+        JedisPool jedisPool = createJedisPool(redisProperties);
+        return new RedisPush(redisProperties.getTopic(), jedisPool);
     }
 
-    private static RedissonClient createRedissonClient(RedisProperties redisProperties) {
-        Config config = new Config();
-        config.setCodec(JsonJacksonCodec.INSTANCE);
-        config.useSingleServer()
-                .setAddress("redis://" + redisProperties.getHost() + ":" + redisProperties.getPort())
-                .setPassword(redisProperties.getPassword())
-                .setConnectionPoolSize(64)
-                .setConnectionMinimumIdleSize(10)
-                .setIdleConnectionTimeout(1000)
-                .setConnectTimeout(1000)
-                .setRetryAttempts(3)
-                .setRetryInterval(1000)
-                .setPingConnectionInterval(0)
-                .setKeepAlive(true);
-        return Redisson.create(config);
+    private static JedisPool createJedisPool(RedisProperties redisProperties) {
+        JedisPoolConfig poolConfig = new JedisPoolConfig();
+        //连接池的最小连接数
+        poolConfig.setMinIdle(redisProperties.getRedisPoolMinIdle());
+        //连接池的最大空闲连接数
+        poolConfig.setMaxIdle(redisProperties.getRedisPoolMaxIdle());
+        //连接池的最大连接数
+        poolConfig.setMaxTotal(redisProperties.getRedisPollMaxTotal());
+        //连接池耗尽后是否需要等待，默认true表示等待。当值为true时，setMaxWait才会生效
+        poolConfig.setBlockWhenExhausted(true);
+        //获取连接时校验有效性(ping)，默认false，业务量大时建议设置为false减少开销
+        poolConfig.setTestOnBorrow(true);
+        //是否开启空闲连接检测，如为false，则不剔除空闲连接
+        poolConfig.setTestWhileIdle(true);
+        return new JedisPool(poolConfig, redisProperties.getHost(), redisProperties.getPort(),
+                redisProperties.getTimeout(), redisProperties.getPassword(), redisProperties.getDatabase());
     }
 }

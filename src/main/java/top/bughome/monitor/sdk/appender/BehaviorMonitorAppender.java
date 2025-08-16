@@ -2,11 +2,11 @@ package top.bughome.monitor.sdk.appender;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.UnsynchronizedAppenderBase;
+import top.bughome.monitor.sdk.model.LogMessage;
 import top.bughome.monitor.sdk.properties.ChannelProperties;
 import top.bughome.monitor.sdk.properties.KafkaProperties;
 import top.bughome.monitor.sdk.properties.RabbitMqProperties;
 import top.bughome.monitor.sdk.properties.RedisProperties;
-import top.bughome.monitor.sdk.model.LogMessage;
 import top.bughome.monitor.sdk.push.IPush;
 import top.bughome.monitor.sdk.push.PushConfig;
 
@@ -144,27 +144,27 @@ public class BehaviorMonitorAppender<E> extends UnsynchronizedAppenderBase<E> {
         this.channel = channel;
     }
 
-    public KafkaProperties getKafkaConfig() {
+    public KafkaProperties getKafkaProperties() {
         return kafkaProperties;
     }
 
-    public void setKafkaConfig(KafkaProperties kafkaProperties) {
+    public void setKafkaProperties(KafkaProperties kafkaProperties) {
         this.kafkaProperties = kafkaProperties;
     }
 
-    public RedisProperties getRedisConfig() {
+    public RedisProperties getRedisProperties() {
         return redisProperties;
     }
 
-    public void setRedisConfig(RedisProperties redisProperties) {
+    public void setRedisProperties(RedisProperties redisProperties) {
         this.redisProperties = redisProperties;
     }
 
-    public RabbitMqProperties getRabbitMqConfig() {
+    public RabbitMqProperties getRabbitMqProperties() {
         return rabbitMqProperties;
     }
 
-    public void setRabbitMqConfig(RabbitMqProperties rabbitMqProperties) {
+    public void setRabbitMqProperties(RabbitMqProperties rabbitMqProperties) {
         this.rabbitMqProperties = rabbitMqProperties;
     }
 }
