@@ -44,7 +44,7 @@ public class RabbitPush implements IPush {
                     properties,      // 消息属性
                     data.getBytes(StandardCharsets.UTF_8) // 消息体
             );
-            logger.info("业务行为监控组件，推送日志到RabbitMQ成功，消息内容：{}", data);
+            logger.debug("业务行为监控组件，推送日志到RabbitMQ成功，消息内容：{}", data);
         } catch (Exception e) {
             logger.error("警告⚠️：业务行为监控组件，推送日志到RabbitMQ失败，请检查RabbitMQ服务是否正常运行，或网络连接是否正常。", e);
         }

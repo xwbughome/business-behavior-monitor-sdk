@@ -27,7 +27,7 @@ public class KafkaPush implements IPush {
                 if (exception != null) {
                     logger.error("警告⚠️：业务行为监控组件，推送日志到Kafka失败，请检查Kafka服务是否正常运行，或网络连接是否正常。", exception);
                 } else {
-                    logger.info("业务行为监控组件，推送日志到Kafka成功，消息内容：{}", jsonStr);
+                    logger.debug("业务行为监控组件，推送日志到Kafka成功，消息内容：{}", jsonStr);
                 }
             });
         } catch (Exception e) {

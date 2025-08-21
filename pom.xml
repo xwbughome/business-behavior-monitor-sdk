@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>top.bughome</groupId>
     <artifactId>business-behavior-monitor-sdk</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
     <name>business-behavior-monitor-sdk</name>
     <description>Business Behavior Monitor SDK for Spring Boot</description>
     <url>https://github.com/xwbughome/business-behavior-monitor-sdk</url>
